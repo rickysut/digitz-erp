@@ -20,7 +20,7 @@ frappe.ui.form.on('Sales Invoice', {
 	
 		// update_total_big_display(frm);
 		
-		if (frm.is_new())
+		if (frm.is_new() && !frm.doc.amended_from)
 		{
 			console.log("clear table")
 			frm.clear_table("items");

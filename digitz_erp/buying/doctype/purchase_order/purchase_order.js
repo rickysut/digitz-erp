@@ -173,29 +173,15 @@ frappe.ui.form.on('Purchase Order', {
 
 		
 
-		if(frm.is_new())
-		{
-			// frm.clear_table('items');
+	if (frm.doc.material_request != undefined) {
+			frm.doc.items.forEach(function(item) {
+				update_item_row(frm, item.doctype, item.name);
+			});
+		} 
 
-			console.log("material request checking")
+		frm.trigger("get_default_company_and_warehouse");
+		set_default_payment_mode(frm);
 
-			if(frm.doc.material_request != undefined){
-				frm.doc.items.forEach(function(item) {
-					// Call the update_item_row method for each item in the child table
-					update_item_row(frm, item.doctype, item.name);
-				});
-			}
-			else
-			{
-				console.log("table cleared")
-				frm.clear_table('items');
-			}
-
-			frm.trigger("get_default_company_and_warehouse")
-		
-			set_default_payment_mode(frm);
-			
-		}
 	},
 	validate:function(frm){
 
