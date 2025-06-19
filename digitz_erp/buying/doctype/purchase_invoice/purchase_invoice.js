@@ -11,43 +11,43 @@ frappe.ui.form.on('Purchase Invoice', {
 			}
 		});
 	},
-	refresh:function (frm) {
+	// refresh:function (frm) {
 
-		create_custom_buttons(frm)
+	// 	create_custom_buttons(frm)
 
-		console.log("refresh")
+	// 	console.log("refresh")
 
-		if (frm.doc.docstatus == 4) //Hiding for now
-		{
-			frappe.call({
-				method: 'digitz_erp.api.purchase_invoice_api.check_balance_qty_to_return_for_purchase_invoice',
-				args: {
-					purchase_invoice: frm.doc.name
-				},
-				callback: function (r) {
-					console.log("Server response")
-					console.log(r)
+	// 	if (frm.doc.docstatus == 4) //Hiding for now
+	// 	{
+	// 		frappe.call({
+	// 			method: 'digitz_erp.api.purchase_invoice_api.check_balance_qty_to_return_for_purchase_invoice',
+	// 			args: {
+	// 				purchase_invoice: frm.doc.name
+	// 			},
+	// 			callback: function (r) {
+	// 				console.log("Server response")
+	// 				console.log(r)
 
-					if (r.message) {
+	// 				if (r.message) {
 
-						console.log("check_balance")
-						console.log(r.message)
-						console.log(r)
+	// 					console.log("check_balance")
+	// 					console.log(r.message)
+	// 					console.log(r)
 
-						// Records exist, show the button
-						frm.page.add_menu_item('Create Purchase Return', () =>{
-							frappe.model.open_mapped_doc({
-						method: 'digitz_erp.buying.doctype.purchase_invoice.purchase_invoice.create_purchase_return',
-								frm: cur_frm
-							  });
-						});
-					}
-				}
-			});
-		}
+	// 					// Records exist, show the button
+	// 					frm.page.add_menu_item('Create Purchase Return', () =>{
+	// 						frappe.model.open_mapped_doc({
+	// 					method: 'digitz_erp.buying.doctype.purchase_invoice.purchase_invoice.create_purchase_return',
+	// 							frm: cur_frm
+	// 						  });
+	// 					});
+	// 				}
+	// 			}
+	// 		});
+	// 	}
 
-		update_total_big_display(frm)
-	},
+	// 	update_total_big_display(frm)
+	// },
 	setup: function (frm) {
 
 		frm.add_fetch('supplier', 'tax_id', 'tax_id')
@@ -95,7 +95,7 @@ frappe.ui.form.on('Purchase Invoice', {
 		if(frm.is_new())
 		{
 			// Remove the initial blank item row
-			if (frm.doc.purchase_order== undefined)
+			if (frm.doc.purchase_order== undefined && !frm.doc.amended_from)
 				frm.clear_table('items');
 
 			frm.trigger("get_default_company_and_warehouse");
@@ -452,6 +452,12 @@ frappe.ui.form.on('Purchase Invoice', {
 		});
 	},
 	get_default_company_and_warehouse(frm) {
+
+		if (frm.doc.amended_from) {
+
+			return
+		}
+
 		var default_company = ""
 		console.log("From Get Default Warehouse Method in the parent form")
 		frm.trigger("get_user_warehouse")
