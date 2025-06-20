@@ -14,9 +14,12 @@ class Customer(Document):
         area_mandatory = frappe.get_value("Company",company,"customer_area_required")
         if area_mandatory and not self.area:
             frappe.throw("Select Area.")
-        
-        if area_mandatory:
-            self.name = f"{self.customer_name}, {self.area}"
+            
+        if self.is_new():
+            if area_mandatory:
+                self.name = f"{self.customer_name}, {self.area}"
+            else:
+                self.name = self.customer_name
             
         self.validate_data()
     
