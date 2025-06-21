@@ -9,7 +9,6 @@ class Customer(Document):
     
     def before_validate(self):
         
-        self.name = self.customer_name
         company = get_default_company()
         area_mandatory = frappe.get_value("Company",company,"customer_area_required")
         if area_mandatory and not self.area:
