@@ -5,6 +5,12 @@ import frappe
 from frappe.model.document import Document
 from digitz_erp.api.quotation_api import check_references_created 
 from frappe.utils import money_in_words
+from fpdf import FPDF
+from PyPDF2 import PdfReader, PdfWriter, Transformation
+import io
+from frappe.utils.print_format import get_pdf
+from frappe.utils.jinja import render_template
+
 
 class Quotation(Document):
 
@@ -13,7 +19,8 @@ class Quotation(Document):
 			self.in_words = money_in_words(self.rounded_total, "AED")
    
 		self.update_print_lines()
-  
+	def on_update(self):
+		generate_custom_quotation_pdf(self)
 	def update_print_lines(self):
 		if not self.items:  # Ensure there are items to process
 			return
@@ -39,7 +46,7 @@ class Quotation(Document):
 			# Add group header as the first row with serial number
 			self.append("print_lines", {
 				"sl_no": str(sl_no),
-				"description": f"**{group}**",  # Group name as header
+				"description": group,  # Group name as header
 				"qty": "",  # No quantity for group header
 				"rate": "",
 				"gross_amount": "",
@@ -47,16 +54,7 @@ class Quotation(Document):
 				"net_amount": ""
 			})
    
-			# Add group header as the first row with serial number
-			self.append("print_lines", {
-				"sl_no": "",
-				"description": f"To supply & install:",  # Group name as header
-				"qty": "",  # No quantity for group header
-				"rate": "",
-				"gross_amount": "",
-				"tax_amount": "",
-				"net_amount": ""
-			})
+			
 
 
 			# Add each item under the respective group
@@ -67,7 +65,7 @@ class Quotation(Document):
 
 				self.append("print_lines", {
 					"sl_no": item_sl_no,
-					"description": item.item_name or "",
+					"description": item.display_name or "",
 					"qty": item.qty or "",
 					"rate": f"{item.rate:.2f}" if item.rate else "",
 					"gross_amount": f"{item.gross_amount:.2f}" if item.gross_amount else "",
@@ -368,4 +366,143 @@ def generate_sales_order(quotation):
     
 
 
+def generate_custom_quotation_pdf(doc):
+    # doc = frappe.get_doc("Quotation", quotation_name)
+	output_path = "/home/sameer/Downloads/Quotation-1" + doc.name + ".pdf"
+  
+	
+	grouped = {}
+	group_index_map = {}
+	group_index_counter = 1  # Start group index from 1
+
+	for item in doc.items:
+		group_key = item.item_group or "Ungrouped"
+
+		if group_key not in grouped:
+			# New group encountered
+			grouped[group_key] = {
+				"title": group_key,
+				"items": [],
+				"total": 0
+			}
+			group_index_map[group_key] = group_index_counter
+			group_index_counter += 1
+
+		group = grouped[group_key]
+		item_index = len(group["items"]) + 1
+		item.sr_no = f"{group_index_map[group_key]}.{item_index}"
+
+		group["items"].append(item)
+		group["total"] += float(item.net_amount or 0)
+
+	# Add to context
+	context = {
+		"doc": doc,
+		"groups": list(grouped.values()),
+	}
+	
+	
+	# Read your full HTML template from a .html file or a string (recommended to keep it in private/templates)
+	html = render_template("digitz_erp/templates/quotation_page.html", context)
+	
+	options = {
+		"page-size": "A4",
+		"margin-top": "40mm",  # ACTIVE MARGIN HERE
+    "margin-bottom": "10mm",
+    "margin-left": "10mm",
+    "margin-right": "10mm",
+		
+	}
+
+	# Generate PDF
+	pdf = get_pdf(html, options)
+	
+
+	
+	try:
+		pdf_buffer = io.BytesIO(pdf)
+		original_pdf = PdfReader(pdf_buffer)  # ✅ works!
+	except Exception as e:
+		print(type(pdf))
+		print(e)	
+	output_pdf = PdfWriter()
+	print("Working here as well")
+	for i, page in enumerate(original_pdf.pages):
+		if i == 0:
+			print("Writing first page without header")
+			output_pdf.add_page(page)  # First page without header
+			continue
+		
+		
+		# 2. Translate (move) original page content down by 40mm (~113pt)
+		y_offset = 50  # 40mm in points (1mm = ~2.83465pt)
+		page.add_transformation(Transformation().translate(tx=0, ty=-y_offset))
+		# Create header of matching size
+		header_pdf = create_header_pdf(float(page.mediabox.width), float(page.mediabox.height))
+		header_page = header_pdf.pages[0]
+		print("working third line")
+		# Merge header onto original page
+		page.merge_page(header_page)
+		print("working fourth line")
+		output_pdf.add_page(page)
+
+# Step 4: Write to file
+	
+	output_stream = io.BytesIO()
+	output_pdf.write(output_stream)
+
+	from frappe.utils.file_manager import save_file
+	file_doc = save_file(
+		fname=f"{doc.name}-quotation.pdf",
+		content=output_stream.getvalue(),
+		dt="Quotation",
+		dn=doc.name,
+		folder="Home/Attachments",
+		is_private=0
+	)
+
+
+# Step 2: Define the custom header (using fpdf)
+class HeaderPDF(FPDF):
+	def header(self):
+		# Define margins and usable width
+		left_margin = 40
+		right_margin = 40
+		usable_width = self.w - left_margin - right_margin
+
+		# Column width (half-half layout)
+		col_width = usable_width / 2
+
+		# Logo on left side (slightly padded)
+		self.image("/home/sameer/Downloads/IMG-20250630-WA0006.jpg", x=left_margin, y=10, h=45)
+
+		# Text on right side (also padded inward)
+		self.set_xy(left_margin + col_width, 10)
+		self.set_font("Helvetica", size=8)
+		self.set_text_color(31, 46, 84)
+		self.multi_cell(col_width, 8,
+			"Creative Shelf LLC\n"
+			"P.O. Box: 282943\n"
+			"Dubai, United Arab Emirates\n"
+			"Tel: +971 4 258 8826\n"
+			"E-mail: info@creativeshelf.ae\n"
+			"Website: www.creativeshelf.ae",
+			align="R"
+		)
+
+
+        
+
+def create_header_pdf(width, height):
+	pdf = HeaderPDF(unit="pt", format=(width, height))
+	pdf.add_page()
+
+	# Get the PDF output as bytes
+	pdf_bytes = pdf.output(dest='S').encode('latin1')  # Output string, encode to bytes
+	buffer = io.BytesIO(pdf_bytes)
+	buffer.seek(0)
+
+	return PdfReader(buffer)
+
+# Step 3: Merge header into all pages except the first
 

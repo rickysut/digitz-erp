@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; }
+
+    /* .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    } */
+    .logo { height: 60px; }
+    .company-info {
+      text-align: right;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .title {
+      text-align: center;
+      font-size: 16px;
+      font-weight: bold;
+      border: 1px solid #000;
+      padding: 6px;
+      width: 100%;
+      margin: 12px 0;
+    }
+
+    .quote-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #000;
+      margin-bottom: 20px;
+    }
+
+    .quote-table td {
+      border: 1px solid #000;
+      padding: 6px;
+      font-weight: bold;
+    }
+
+    .group-title {
+      background-color: #fddede;
+      padding: 6px;
+      font-weight: bold;
+      border: 1px solid #999;
+      font-size: 13px;
+    }
+    /* .item-description {  */
+    /* word-wrap: break-word;  */
+    /* overflow-wrap: break-word;  */
+    /* white-space: normal;   */
+  /* } */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+
+    th, td {
+      border: 1px solid #999;
+      padding: 6px;
+      vertical-align: top;
+    }
+
+    th {
+     
+      text-align: center;
+    }
+
+    .note {
+      font-size: 11px;
+      font-style: italic;
+      color: #555;
+      padding-top: 4px;
+    }
+
+    .total-row td {
+      font-weight: bold;
+      text-align: right;
+    }
+  
+    tr, td, th {
+  page-break-inside: avoid !important;
+
+
+  }
+
+  thead { display: table-header-group; } 
+  
+
+ 
+
+
+
+
+  </style>
+</head>
+<body>
+
+<table style="width: 100%; border: none; border-collapse: collapse;">
+  <tr>
+    <td style="width: 50%;border: none;">
+      <img src="/files/IMG-20250630-WA0006.jpg" style="height: 60px;">
+    </td>
+    <td style="text-align: right; font-size: 11px; color: #1f2e54; border: none;">
+      <b>Creative Shelf LLC</b><br>
+      P.O. Box: 282943<br>
+      Dubai, United Arab Emirates<br>
+      Tel: +971 4 258 8826<br>
+      E-mail: info@creativeshelf.ae<br>
+      Website: www.creativeshelf.ae
+    </td>
+  </tr>
+</table>
+
+<!-- Quote Header Section -->
+<table style="width: 100%; border-collapse: collapse; border: 1px solid #000; margin-bottom: 20px; font-size: 12px;">
+  <tr>
+    <td colspan="5" style="border: 1px solid #000; padding: 5px;"><b>BILL OF QUANTITIES : Joinery Work</b></td>
+  </tr>
+  <tr>
+    <td colspan="5" style="border: 1px solid #000; padding: 5px;"><b>PROJECT:</b> {{ doc.project or "Villa @ Villa 23 @ The Villa - Dubai / VS Design / Mr. Victor." }}</td>
+  </tr>
+  <tr>
+    <td colspan="5" style="border: 1px solid #000; padding: 8px; text-align: center; font-weight: bold; background-color: #d9d9d9;">
+      QUOTATION
+    </td>
+  </tr>
+  <tr>
+    <td colspan="3" style="border: 1px solid #000; padding: 5px;"><b>Date :</b> {{ doc.get_formatted("posting_date") or "24-03-2025" }}</td>
+    <td colspan="2" style="border: 1px solid #000; padding: 5px;"><b>Quote Ref :</b> {{ doc.name or "CS-1588-AC-001-REV-003" }}</td>
+  </tr>
+</table>
+
+
+
+<table class="items-table">
+  <thead style="background-color:#d28857 !important;">
+    <tr>
+      <th style="width: 8%;">Sr.no</th>
+      <th style="width: 50%;">Description</th>
+      <th style="width: 8%;">Qty</th>
+      <th style="width: 8%;">Unit</th>
+      <th style="width: 13%;">Unit Rate</th>
+      <th style="width: 13%;">Amount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for group in groups %}
+    {% set group_index = loop.index %}
+      <!-- Group title row inside table -->
+      <tr class="group-title-row" style="background-color: #e5af8a !important;">
+        <td colspan="6">{{ group_index }} {{ group.title }}</td>
+      </tr>
+
+      {% for item in group["items"] %}
+        
+      <tr>
+        <td style="text-align: center;">{{ item.sr_no or item.idx }}</td>
+        <td class="item-description">
+          {{ item.display_name | safe }}
+          {% if item.note %}
+            <div class="note">Note: {{ item.note }}</div>
+          {% endif %}
+        </td>
+        <td style="text-align: center;">{{ item.qty }}</td>
+        <td style="text-align: center;">{{ item.unit }}</td>
+        <td style="text-align: right;">{{ item.rate }}</td>
+        <td style="text-align: right;">{{ item.net_amount }}</td>
+      </tr>
+      {% endfor %}
+
+      <!-- Total row -->
+      <tr class="total-row" style="background-color: #afafaf;">
+        <td colspan="5">Total of {{ group_index }} in AED</td>
+        <td>{{ group.total }}</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<!-- Page Break if needed -->
+<div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th colspan="6" class="summary-header" style="background-color:#d28857 !important;">Summary</th>
+                </tr>
+                <tr>
+                    <th colspan="6" class="boq-details-header" style="background-color: #e5af8a !important;">BOQ Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% set ns = namespace(grand_total=0) %}
+                {% for group in groups %}
+                {% set group_index = loop.index %}
+                <tr>
+                    <td style="width: 30px;">{{ group_index }}</td>
+                    <td style="font-weight: bold;">{{ group.title }}</td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td class="amount-column" style="text-align: right;">{{ group.total }}</td>
+                </tr>
+                     {% set ns.grand_total = ns.grand_total + group.total %}
+                {% endfor %}
+                <tr class="total-row">
+                    <td colspan="4"></td>
+                    <td class="total-label">Total in AED</td>
+                    <td class="total-amount">{{ "%.2f"|format(ns.grand_total) }}</td>
+                </tr>
+                
+            </tbody>
+        </table>
+    </div>
+  
+</body>
+
+</html>
