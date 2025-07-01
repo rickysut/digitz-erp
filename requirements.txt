@@ -1,1 +1,2 @@
-# frappe -- https://github.com/frappe/frappe is installed via 'bench init'
+pypdf==3.17.4
+PyPDF2==3.0.1
